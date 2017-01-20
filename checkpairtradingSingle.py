@@ -45,7 +45,7 @@ for i in range(10):
 
 
 
-    for i in range(len(potentialPair)):
+for i in range(len(potentialPair)):
     m = str(potentialPair[i][0])
     n = str(potentialPair[i][1])
     price_of_1 = ts.get_hist_data(m, start='2012-01-01', end='2013-01-01')
