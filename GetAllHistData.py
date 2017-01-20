@@ -6,6 +6,7 @@ import multiprocessing
 
 TABLE_STOCKS_BASIC = 'stock_basic_list'
 DownloadDir = './stockdata/'
+#DownloadDir = os.path.pardir + '/stockdata/'
 # os.path.pardir: 上级目录
 
 # 补全股票代码(6位股票代码)
@@ -110,7 +111,7 @@ def download_all_stock_history_k_line():
     print 'download all stock k-line'
     try:
         df = pd.DataFrame.from_csv(TABLE_STOCKS_BASIC + '.csv')
-        pool = multiprocessing.Pool(processes=2)
+        pool = multiprocessing.Pool(processes=10)
         pool.map(download_stock_kline, df.index)
         pool.close()
         pool.join()  
