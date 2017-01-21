@@ -39,7 +39,9 @@ def download_stock_kline(code, date_start='', date_end=datetime.date.today()):
 
         writeMode = 'w'
         if os.path.exists(DownloadDir+fileName):
-            #print (">>exist:" + code)
+            print (">>exist:" + code)
+            return
+            '''
             df = pd.DataFrame.from_csv(path=DownloadDir+fileName)
 
             se = df.head(1).index #取已有文件的最近日期
@@ -47,6 +49,7 @@ def download_stock_kline(code, date_start='', date_end=datetime.date.today()):
             date_start = dateNew.strftime("%Y-%m-%d")
             #print date_start
             writeMode = 'a'
+            '''
 
         if date_start == '':
             date_start = "19900101"
@@ -121,12 +124,11 @@ def download_all_stock_history_k_line():
     print 'download all stock k-line'
 
 ## Main functionality
-
 def main():
 	# 获取所有股票的历史K线
     #download_stock_kline("600446")
 
-	download_stock_basic_info()
+	#download_stock_basic_info()
 	download_all_stock_history_k_line()
 
 if __name__ == "__main__":

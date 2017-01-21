@@ -7,16 +7,14 @@ import pandas as pd
 from datetime import datetime
 from scipy.stats.stats import pearsonr
 
-DownloadDir = './stockdata/'
-'''
-selector = pd.read_csv('selector.csv', index_col=0)
-selector_code = selector['code'][100:110]
-reselectorcode = selector_code.reset_index(drop=True)
+sector = pd.read_csv('sector.csv', index_col=0)
+sector_code = sector['code'][100:110]
+resectorcode = sector_code.reset_index(drop=True)
 stockPool = []
 rank = {}
 Rank = {}
 for i in range(10):
-    stockPool.append(str(reselectorcode[i]))
+    stockPool.append(str(resectorcode[i]))
 
 
 
@@ -43,17 +41,15 @@ for i in range(10):
     rank1 = sorted(rank.items(), key=operator.itemgetter(1))
     potentialPair = [list(map(int, item[0].split('+'))) for item in rank1]
     potentialPair = potentialPair[-5:]
-'''
 
-def adfuller_check2(code1, code2):
-#for i in range(len(potentialPair)):
-    m = str(code1)
-    n = str(code2)
-    kline1 = pd.read_csv(DownloadDir + "h_kline_" + code1 + ".csv", parse_dates='date', index_col='date', date_parser=dateparse)
-    kline2 = pd.read_csv(DownloadDir + "h_kline_" + code2 + ".csv")
 
-    price_of_1 = kline1['2011-10-10':'2016-03-05']
-    price_of_2 = kline2['2011-10-10':'2016-03-05']
+
+
+for i in range(len(potentialPair)):
+    m = str(potentialPair[i][0])
+    n = str(potentialPair[i][1])
+    price_of_1 = ts.get_hist_data(m, start='2012-01-01', end='2013-01-01')
+    price_of_2 = ts.get_hist_data(n, start='2012-01-01', end='2013-01-01')
 
     closeprice_of_1 = price_of_1['close']
     closeprice_of_2 = price_of_2['close']
@@ -64,32 +60,8 @@ def adfuller_check2(code1, code2):
         spread = spread.dropna()
         sta = sts.adfuller(spread, 1)
         pair = m + '+' + n
-        print pair + ": adfuller result " + sta
+        Rank[pair] = sta[0]
+        rank2 = sorted(Rank.items(), key=operator.itemgetter(1))
 
-def adfuller_check(code1, code2):
-#for i in range(len(potentialPair)):
-    m = str(code1)
-    n = str(code2)
-    price_of_1 = ts.get_hist_data(m, start='2011-10-10', end='2016-03-05')
-    price_of_2 = ts.get_hist_data(n, start='2011-10-10', end='2016-03-05')
-    price_of_1.to_csv(code1+"20111010-2016-03-05.csv")
-    price_of_2.to_csv(code1+"20111010-2016-03-05.csv")
-    closeprice_of_1 = price_of_1['close']
-    closeprice_of_2 = price_of_2['close']
 
-    if len(closeprice_of_1) != 0 and len(closeprice_of_2) != 0:
-        model = pd.ols(y=closeprice_of_2, x=closeprice_of_1, intercept=True)   # perform ols on these two stocks
-        spread = closeprice_of_2 - closeprice_of_1*model.beta['x']
-        spread = spread.dropna()
-        sta = sts.adfuller(spread, 1)
-        pair = m + '+' + n
-        print pair + ": adfuller result " + sta
-
-## Main functionality
-def main():
-    # 获取所有股票的历史K线
-    adfuller_check("601002", "600815")
-
-if __name__ == "__main__":
-    # Execute Main functionality
-    main()
+    
