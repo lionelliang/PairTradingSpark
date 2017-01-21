@@ -12,8 +12,7 @@ from pyspark import SparkConf, SparkContext
 
 ## Module Constants
 APP_NAME = "ADF Spark Application"
-fields = ('date', 'sym', 'open', 'high', 'low', 'clsoe',
-            'volume', 'amount')
+fields = ('date', 'sym', 'open', 'high', 'low', 'clsoe', 'volume', 'amount')
 Quotation = namedtuple('Quotation', fields)
 APP_NAME = "Flight Delay Analysis"
 DATE_FMT = "%Y/%m/%d"
@@ -25,11 +24,11 @@ def parse(row):
 	Parses a row and returns a named tuple.
 	"""
 
-	row[0]  = datetime.strptime(row[0], DATE_FMT).date()
-	row[2]  = float(row[2])
-	row[3]  = float(row[3])
-	row[4]  = float(row[4])
-	row[5]  = float(row[5])
+	row[0] = datetime.strptime(row[0], DATE_FMT).date()
+	row[2] = float(row[2])
+	row[3] = float(row[3])
+	row[4] = float(row[4])
+	row[5] = float(row[5])
 	return Quotation(*row[:8])
 
 def split(line):
@@ -51,7 +50,7 @@ if __name__ == "__main__":
 	# Configure Spark
 	conf = SparkConf().setAppName(APP_NAME)
 	conf = conf.setMaster("local[*]")
-	sc   = SparkContext(conf=conf)
+	sc = SparkContext(conf=conf)
 
 	# Execute Main functionality
 	main(sc)
