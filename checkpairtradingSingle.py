@@ -49,7 +49,7 @@ def adfuller_check2(code1, code2):
 #for i in range(len(potentialPair)):
     m = str(code1)
     n = str(code2)
-    kline1 = pd.read_csv(DownloadDir + "h_kline_" + code1 + ".csv", parse_dates='date', index_col='date', date_parser=dateparse)
+    kline1 = pd.read_csv(DownloadDir + "h_kline_" + code1 + ".csv", parse_dates='date', index_col='date')
     kline2 = pd.read_csv(DownloadDir + "h_kline_" + code2 + ".csv")
 
     price_of_1 = kline1['2011-10-10':'2016-03-05']
