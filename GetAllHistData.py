@@ -125,8 +125,8 @@ def download_all_stock_history_k_line():
 
 ## Main functionality
 def main():
-	# 获取所有股票的历史K线
-    #download_stock_kline("600446")
+    #download_stock_kline("600815")
+    #download_stock_kline("601002")
 
 	#download_stock_basic_info()
 	download_all_stock_history_k_line()

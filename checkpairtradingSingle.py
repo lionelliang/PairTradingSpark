@@ -1,6 +1,7 @@
-import operator
+﻿import operator
 import numpy as np
 import statsmodels.tsa.stattools as sts
+import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import tushare as ts
 import pandas as pd
@@ -78,12 +79,14 @@ def adfuller_check(code1, code2):
     closeprice_of_2 = price_of_2['close']
 
     if len(closeprice_of_1) != 0 and len(closeprice_of_2) != 0:
-        model = pd.ols(y=closeprice_of_2, x=closeprice_of_1, intercept=True)   # perform ols on these two stocks
-        spread = closeprice_of_2 - closeprice_of_1*model.beta['x']
+        model = sm.OLS(closeprice_of_2, closeprice_of_1)
+        result = model.fit()
+        spread = closeprice_of_2 - closeprice_of_1*result.params[1]
         spread = spread.dropna()
         sta = sts.adfuller(spread, 1)
         pair = m + '+' + n
-        print pair + ": adfuller result " + sta
+        print pair + ": adfuller result " 
+        print sta
 
 ## Main functionality
 def main():
