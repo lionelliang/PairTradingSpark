@@ -5,6 +5,7 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 import tushare as ts
 import pandas as pd
+import time
 from datetime import datetime
 from scipy.stats.stats import pearsonr
 
@@ -45,16 +46,21 @@ for i in range(10):
     potentialPair = [list(map(int, item[0].split('+'))) for item in rank1]
     potentialPair = potentialPair[-5:]
 '''
-
+#2011/10/13
+tudateparser = lambda dates: pd.datetime.strptime(dates, '%Y-%m-%d')
 def adfuller_check2(code1, code2):
 #for i in range(len(potentialPair)):
     m = str(code1)
     n = str(code2)
-    kline1 = pd.read_csv(DownloadDir + "h_kline_" + code1 + ".csv", parse_dates='date', index_col='date')
-    kline2 = pd.read_csv(DownloadDir + "h_kline_" + code2 + ".csv")
-
-    price_of_1 = kline1['2011-10-10':'2016-03-05']
-    price_of_2 = kline2['2011-10-10':'2016-03-05']
+    start_date = '2011-10-10'
+    end_date = '2014-09-30'
+    kline1 = pd.read_csv(DownloadDir + "h_kline_" + code1 + ".csv", 
+                parse_dates=['date'], index_col='date', date_parser=tudateparser)
+    kline2 = pd.read_csv(DownloadDir + "h_kline_" + code2 + ".csv", 
+                parse_dates=['date'], index_col='date', date_parser=tudateparser)
+    #print kline1.head()
+    price_of_1 = kline1[end_date:start_date]
+    price_of_2 = kline2[end_date:start_date]
 
     closeprice_of_1 = price_of_1['close']
     closeprice_of_2 = price_of_2['close']
@@ -65,14 +71,15 @@ def adfuller_check2(code1, code2):
         spread = spread.dropna()
         sta = sts.adfuller(spread, 1)
         pair = m + '+' + n
-        print pair + ": adfuller result " + sta
+        print pair + ": adfuller result "
+        print sta
 
-def adfuller_check(code1, code2):
+def adfuller_check_online(code1, code2):
 #for i in range(len(potentialPair)):
     m = str(code1)
     n = str(code2)
-    price_of_1 = ts.get_hist_data(m, start='2011-10-10', end='2016-03-05')
-    price_of_2 = ts.get_hist_data(n, start='2011-10-10', end='2016-03-05')
+    price_of_1 = ts.get_hist_data(m, start='2011-10-10', end='2014-09-30')
+    price_of_2 = ts.get_hist_data(n, start='2011-10-10', end='2014-09-30')
     price_of_1.to_csv(code1+"20111010-2016-03-05.csv")
     price_of_2.to_csv(code1+"20111010-2016-03-05.csv")
     closeprice_of_1 = price_of_1['close']
@@ -90,9 +97,13 @@ def adfuller_check(code1, code2):
 
 ## Main functionality
 def main():
-    # 获取所有股票的历史K线
-    adfuller_check("601002", "600815")
+    time1 = time.time()
 
+    # 获取所有股票的历史K线
+    adfuller_check2("601002", "600815")
+
+    time2 = time.time()
+    print "running time(s): ", time2-time1
 if __name__ == "__main__":
     # Execute Main functionality
     main()
