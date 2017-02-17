@@ -14,7 +14,6 @@ from pyspark import SparkConf, SparkContext
 APP_NAME = "ADF Spark Application"
 fields = ('date', 'sym', 'open', 'high', 'low', 'clsoe', 'volume', 'amount')
 Quotation = namedtuple('Quotation', fields)
-APP_NAME = "Flight Delay Analysis"
 DATE_FMT = "%Y/%m/%d"
 TIME_FMT = "%H%M"
 
