@@ -4,21 +4,12 @@
 import csv
 import os
 import time
-import operator
-import multiprocessing
-import numpy as np
 import pandas as pd
-import tushare as ts
 import statsmodels.api as sm
-import matplotlib.pyplot as plt
 import statsmodels.tsa.stattools as sts
 
-from datetime import datetime
 from StringIO import StringIO
-from collections import namedtuple
-from operator import add, itemgetter
 from pyspark import SparkConf, SparkContext
-from pyspark import SQLContext
 
 ## Module Constants
 APP_NAME = "ADF Spark Application"
@@ -60,10 +51,10 @@ def split(line):
 #date example 2011/10/13
 tudateparser = lambda dates: pd.datetime.strptime(dates, '%Y-%m-%d')
 def adfuller_check(code1, code2, start_date = '2011-10-10', end_date = '2014-09-30'):
-    m = getSixDigitalStockCode(code1)
-    n = getSixDigitalStockCode(code2)
-    file1 = DownloadDir + "h_kline_" + m + ".csv"
-    file2 = DownloadDir + "h_kline_" + n + ".csv"
+    m = str(code1)
+    n = str(code2)
+    file1 = DownloadDir + "h_kline_" + code1 + ".csv"
+    file2 = DownloadDir + "h_kline_" + code2 + ".csv"
     if not os.path.exists(file1) or not os.path.exists(file1):
         return
 
@@ -73,32 +64,36 @@ def adfuller_check(code1, code2, start_date = '2011-10-10', end_date = '2014-09-
     price_of_1 = kline1[end_date:start_date]
     price_of_2 = kline2[end_date:start_date]
 
-    closeprice_of_1 = price_of_1['close'].dropna()
-    closeprice_of_2 = price_of_2['close'].dropna()
+    combination = price_of_1.join(price_of_2, how='inner', lsuffix='l', rsuffix='r')
+    combination.dropna()
 
-    print combination.head()
-
+    closeprice_of_1 = combination['closel'].reset_index(drop=True)
+    closeprice_of_2 = combination['closer'].reset_index(drop=True)
+    
     if len(closeprice_of_1) != 0 and len(closeprice_of_2) != 0:
-        model = pd.ols(y=closeprice_of_2, x=closeprice_of_1, intercept=True)   # perform ols on these two stocks
-        spread = closeprice_of_2 - closeprice_of_1*model.beta['x']
-        spread = spread.dropna()
-        sta = sts.adfuller(spread, 1)
+        X = sm.add_constant(closeprice_of_1)
+        model = sm.OLS(endog=closeprice_of_2, exog=X)
+        result = model.fit()
+        spread = result.resid
+        stat = sts.adfuller(x=spread)
+        adf = stat[0]
+        pvalue = stat[1]
+        critical_values = stat[4]
         pair = m + '+' + n
-        return sta
-'''        
-        print pair + ": adfuller result "
-        print sta
-'''
+
+        return adf < critical_values['5%']
 
 def adfuller_check2(row):
 	return adfuller_check(row[0], row[1])
 
 def check_all_dir(sc):
-    print 'starting adf checking'
+    print "starting adf checking"
     stockPool = sc.textFile(TABLE_STOCKS_PAIRS + '.csv').map(split)
-    stats = stockPool.map(adfuller_check2)
-    print stats.first()
-    print stats.count()
+    print stockPool.first()
+    #adfResult = stockPool.map(adfuller_check2)
+    adfResult = stockPool.filter(adfuller_check2)
+    print adfResult.first()
+    print "%d <<<pairings" % adfResult.count()
 
 ## Main functionality
 def main(sc):

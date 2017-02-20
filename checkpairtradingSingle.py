@@ -38,13 +38,20 @@ def adfuller_check_smols(code1, code2, start_date = '2011-10-10', end_date = '20
         X = sm.add_constant(closeprice_of_1)
         model = sm.OLS(endog=closeprice_of_2, exog=X)
         result = model.fit()
-        spread = closeprice_of_2 - closeprice_of_1*result.params.closel
-        spread = spread.dropna()
-        
-        sta = sts.adfuller(spread, 1)
+#        print result.summary()
+        spread = result.resid
+        stat = sts.adfuller(x=spread)
+        adf = stat[0]
+        pvalue = stat[1]
+        critical_values = stat[4]
         pair = m + '+' + n
-        print sta
-        return sta
+        print adf < critical_values['10%']
+        return adf < critical_values['10%']
+#       for(k, v) in critical_values.items():
+#           print k, v
+#        spread2 = closeprice_of_2 - closeprice_of_1*result.params.closel
+#        sta2 = sts.adfuller(spread, 1)
+#        print sta2
 
 def adfuller_check_online(code1, code2):
 #for i in range(len(potentialPair)):
@@ -58,9 +65,8 @@ def adfuller_check_online(code1, code2):
     closeprice_of_2 = price_of_2['close']
 
     if len(closeprice_of_1) != 0 and len(closeprice_of_2) != 0:
-        model = sm.OLS(closeprice_of_2, closeprice_of_1)
-        result = model.fit()
-        spread = closeprice_of_2 - closeprice_of_1*result.params[1]
+        model = pd.ols(y=closeprice_of_2, x=closeprice_of_1, intercept=True)   # perform ols on these two stocks
+        spread = closeprice_of_2 - closeprice_of_1*model.beta['x']
         spread = spread.dropna()
         sta = sts.adfuller(spread, 1)
         pair = m + '+' + n
