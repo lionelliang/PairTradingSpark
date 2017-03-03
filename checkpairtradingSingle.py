@@ -1,4 +1,4 @@
-﻿import os
+import os
 import time
 import operator
 import multiprocessing
@@ -45,7 +45,7 @@ def adfuller_check_smols(code1, code2, start_date = '2011-10-10', end_date = '20
         pvalue = stat[1]
         critical_values = stat[4]
         pair = m + '+' + n
-        print adf < critical_values['10%']
+
         return adf < critical_values['10%']
 #       for(k, v) in critical_values.items():
 #           print k, v
@@ -108,7 +108,7 @@ def adfuller_check(code1, code2, start_date = '2011-10-10', end_date = '2014-09-
         print sta
 '''
 def adfuller_check2(df):
-    adfuller_check(df[0], df[1])
+    adfuller_check_smols(df[0], df[1])
 
 def adfuller_check3(df):
     print df
@@ -145,9 +145,9 @@ def check_all_dir():
 def main():
     time1 = time.time()
     #adfuller_check2("601002", "600815")
-    adfuller_check_smols("601002", "600815")
+    #adfuller_check_smols("601002", "600815")
     # chedk all stock pairing in list book
-    #check_all_dir()
+    check_all_dir()
 
     time2 = time.time()
     print "running time(s): ", time2-time1

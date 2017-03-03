@@ -50,7 +50,7 @@ def split(line):
 
 #date example 2011/10/13
 tudateparser = lambda dates: pd.datetime.strptime(dates, '%Y-%m-%d')
-def adfuller_check(code1, code2, start_date = '2011-10-10', end_date = '2014-09-30'):
+def adfuller_check(code1, code2, start_date = '2013-10-10', end_date = '2014-09-30'):
     m = str(code1)
     n = str(code2)
     file1 = DownloadDir + "h_kline_" + code1 + ".csv"
