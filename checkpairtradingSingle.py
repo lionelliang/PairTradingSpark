@@ -73,7 +73,7 @@ def adfuller_check_online(code1, code2):
         print pair + ": adfuller result " 
         print sta
 
-#2011/10/13
+#date example 2011/10/13
 tudateparser = lambda dates: pd.datetime.strptime(dates, '%Y-%m-%d')
 def adfuller_check(code1, code2, start_date = '2011-10-10', end_date = '2014-09-30'):
 #for i in range(len(potentialPair)):
