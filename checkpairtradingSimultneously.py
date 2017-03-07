@@ -40,7 +40,7 @@ def simulate_check_5days(close1, close2):
     
     # check every 5days
     # period = 250 working days in a year
-    jump = 5
+    jump = 1
     period = 250
 
     if close1.count() < period:
