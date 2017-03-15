@@ -33,30 +33,29 @@ def linregSGD(x, y, a, b):
     errorB = b
     count = 0           # 循环次数
     finish = 0          # 终止标志
-    m = len(x) # 训练数据点数目
+    m = len(x)          # 训练数据点数目
 
     while count < loop_max:
-        count += 1
+        #count += 1
 
         # 遍历训练数据集，不断更新权值
-        for i in range(m):  
+        for i in range(m):
+            count += 1
             diff = a + b * x[i] - y[i]  # 训练集代入,计算误差值
 
             # 采用随机梯度下降算法,更新一次权值只使用一组训练数据
             a = a - alpha * diff
             b = b - alpha * diff * x[i]
 
-            # ------------------------------终止条件判断-----------------------------------------
-            # 若没终止，则继续读取样本进行处理，如果所有样本都读取完毕了,则循环重新从头开始读取样本进行处理。
-
-        # ----------------------------------终止条件判断-----------------------------------------
-        # 注意：有多种迭代终止条件，和判断语句的位置。终止判断可以放在权值向量更新一次后,也可以放在更新m次后。
-        if ((a-errorA)*(a-errorA) + (b-errorB)*(b-errorB)) < epsilon:     # 终止条件：前后两次计算出的权向量的绝对误差充分小  
-            finish = 1
+            if ((a-errorA)*(a-errorA) + (b-errorB)*(b-errorB)) < epsilon:     # 终止条件：前后两次计算出的权向量的绝对误差充分小  
+                finish = 1
+                break
+            else:
+                errorA = a
+                errorB = b
+        if finish == 1:     # 跳出循环
             break
-        else:
-            errorA = a
-            errorB = b
+
     print 'loop count = %d' % count,  '\tweight:[%f, %f]' % (a, b)
     return a, b
 
@@ -100,6 +99,7 @@ def adfuller_check_smols(closeprice_of_1, closeprice_of_2):
 def compare_algorithm(code1, code2, start_date = '2013-10-10', end_date = '2014-09-30'):
     
     closeprice_of_1, closeprice_of_2 = load_process(code1, code2, start_date, end_date)
+    print "trading days:", len(closeprice_of_1) 
 
     time1 = time.time()
     result = adfuller_check_smols(closeprice_of_1, closeprice_of_2)
@@ -113,9 +113,18 @@ def compare_algorithm(code1, code2, start_date = '2013-10-10', end_date = '2014-
     time4 = time.time()
     print "sgd running time(s): ", time4-time3
 
+    time7 = time.time()
+    #a = 0
+    #b = 0
+    np.random.seed(2)
+    a, b = np.random.randn(2)
+    result = adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b)
+    time8 = time.time()
+    print "sgd00 running time(s): ", time8-time7
+
     time5 = time.time()
-    a = 0
-    b = 0
+    a = 0.189965
+    b = 0.4243
     result = adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b)
     time6 = time.time()
     print "sgdmiddle running time(s): ", time6-time5
@@ -232,7 +241,7 @@ def main():
 
     #adfuller_check_price_sgd("601002", "600815",start_date = '2013-10-10', 
     #            end_date = '2014-09-30', linrreg="SMOLS")           #"SGD")
-    compare_algorithm("601002", "600815",start_date = '2013-10-10', end_date = '2014-09-30')
+    compare_algorithm("601002", "600815",start_date = '2013-10-10', end_date = '2014-09-30') #2014-07-30 trading days: 192; 2014-09-30 trading days: 233
 
     time2 = time.time()
     print "running time(s): ", time2-time1

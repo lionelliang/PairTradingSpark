@@ -5,7 +5,49 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 from scipy import stats
 
-def SGD(x, target_data, a, b):
+'''
+    linear regression with Stochastic Gradient Decent mothod
+'''
+def SGD(x, y, a, b):
+# -------------------------------------------随机梯度下降算法----------------------------------------------------------
+
+    # 两种终止条件
+    loop_max = 10000   # 最大迭代次数(防止死循环)
+    epsilon = 1e-6    
+
+    alpha = 0.001       # 步长(注意取值过大会导致振荡,过小收敛速度变慢)
+    diff = 0.           
+    errorA = a
+    errorB = b
+    count = 0           # 循环次数
+    finish = 0          # 终止标志
+    m = len(x)          # 训练数据点数目
+
+    while count < loop_max:
+        #count += 1
+
+        # 遍历训练数据集，不断更新权值
+        for i in range(m):
+            count += 1
+            diff = a + b * x[i] - y[i]  # 训练集代入,计算误差值
+
+            # 采用随机梯度下降算法,更新一次权值只使用一组训练数据
+            a = a - alpha * diff
+            b = b - alpha * diff * x[i]
+
+            if ((a-errorA)*(a-errorA) + (b-errorB)*(b-errorB)) < epsilon:     # 终止条件：前后两次计算出的权向量的绝对误差充分小  
+                finish = 1
+                break
+            else:
+                errorA = a
+                errorB = b
+        if finish == 1:     # 跳出循环
+            break
+
+    print 'loop count = %d' % count,  '\tweight:[%f, %f]' % (a, b)
+    return a, b
+
+def SGDWrong(x, target_data, a, b):
 # -------------------------------------------随机梯度下降算法----------------------------------------------------------
 
     # 两种终止条件
