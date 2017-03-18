@@ -1,6 +1,7 @@
 #coding:utf-8
 import os
 import time
+import csv
 import operator
 import multiprocessing
 import numpy as np
@@ -16,6 +17,28 @@ TABLE_STOCKS_BASIC = 'stock_basic_list'
 DownloadDir = './stockdata/'
 #date example 2011/10/13
 tudateparser = lambda dates: pd.datetime.strptime(dates, '%Y-%m-%d')
+weightdict = {}     #previous weight dict
+
+# 功能：从csv文件中读取一个字典
+# 输入：文件名称，keyIndex,valueIndex
+def readDictCSV(fileName="", dataDict = {}):
+    if not os.path.exists(fileName) :
+        return
+    with open(fileName, "r") as csvFile:
+        reader = csv.reader(csvFile)
+        for row in reader:
+            dataDict[str(row[0])] = [float(row[1]), float(row[2])]
+        csvFile.close()
+    return dataDict
+
+# 功能：将一字典写入到csv文件中
+# 输入：文件名称，数据字典
+def writeDictCSV(fileName="", dataDict={}):
+    with open(fileName, "wb") as csvFile:
+        csvWriter = csv.writer(csvFile)
+        for k,v in dataDict.iteritems():
+            csvWriter.writerow([str(k), v[0], v[1]])
+        csvFile.close()
 
 '''
     linear regression with Stochastic Gradient Decent mothod
@@ -67,7 +90,9 @@ def adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b):
         spread = closeprice_of_2 - closeprice_of_1*beta - alpha
         adfstat, pvalue, usedlag, nobs, critvalues, icbest = sts.adfuller(x=spread)
 
-        return adfstat < critvalues['5%']
+        return adfstat < critvalues['5%'], alpha, beta
+    else:
+        return False, 0, 0
 '''        
         print adfstat
         for(k, v) in critvalues.items():
@@ -97,9 +122,10 @@ def adfuller_check_smols(closeprice_of_1, closeprice_of_2):
         print sta2
 '''
 def compare_algorithm(code1, code2, start_date = '2013-10-10', end_date = '2014-09-30'):
-    
     closeprice_of_1, closeprice_of_2 = load_process(code1, code2, start_date, end_date)
-    print "trading days:", len(closeprice_of_1) 
+    print "trading days:", len(closeprice_of_1)
+    if len(closeprice_of_1)<=1 or len(closeprice_of_1)<=1:
+        return
 
     time1 = time.time()
     result = adfuller_check_smols(closeprice_of_1, closeprice_of_2)
@@ -129,7 +155,22 @@ def compare_algorithm(code1, code2, start_date = '2013-10-10', end_date = '2014-
     time6 = time.time()
     print "sgdmiddle running time(s): ", time6-time5
 
-def adfuller_check_price_sgd(code1, code2, start_date = '2011-10-10', end_date = '2014-09-30', linrreg="SMOLS"):
+    time9 = time.time()
+    if weightdict.has_key(code1+code2):
+        a = weightdict[code1+code2][0]
+        b = weightdict[code1+code2][1]
+        print weightdict[code1+code2]
+    else:
+        print "not find w"
+        np.random.seed(2)
+        a, b = np.random.randn(2)
+    result = adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b)
+    time10 = time.time()
+    weightdict[code1+code2] = [result[1], result[2]]
+
+    print "sgdsavedvalue running time(s): ", time10-time9
+
+def adfuller_check_price_sgd(code1, code2, start_date = '2013-10-10', end_date = '2014-09-30', linrreg="SMOLS"):
 
     closeprice_of_1, closeprice_of_2 = load_process(code1, code2, start_date, end_date)
 
@@ -153,7 +194,7 @@ def load_process(code1, code2, start_date, end_date):
     file1 = DownloadDir + "h_kline_" + code1 + ".csv"
     file2 = DownloadDir + "h_kline_" + code2 + ".csv"
     if not os.path.exists(file1) or not os.path.exists(file1):
-        return
+        return {}, {}
 
     kline1 = pd.read_csv(file1, parse_dates=['date'], index_col='date', date_parser=tudateparser)
     kline2 = pd.read_csv(file2, parse_dates=['date'], index_col='date', date_parser=tudateparser)
@@ -190,7 +231,7 @@ def simulate_check_5days(close1, close2):
         index_end += jump
     print index_start/5
 
-def adfuller_check_price(code1, code2, start_date = '2011-10-10', end_date = '2014-09-30'):
+def adfuller_check_price(code1, code2, start_date = '2013-10-10', end_date = '2014-09-30'):
     m = str(code1)
     n = str(code2)
     file1 = DownloadDir + "h_kline_" + code1 + ".csv"
@@ -241,10 +282,13 @@ def main():
 
     #adfuller_check_price_sgd("601002", "600815",start_date = '2013-10-10', 
     #            end_date = '2014-09-30', linrreg="SMOLS")           #"SGD")
-    compare_algorithm("601002", "600815",start_date = '2013-10-10', end_date = '2014-09-30') #2014-07-30 trading days: 192; 2014-09-30 trading days: 233
-
+    readDictCSV("Linrgre.csv", weightdict)
+    #compare_algorithm("601002", "600815",start_date = '2013-10-10', end_date = '2014-09-30') #2014-07-30 trading days: 192; 2014-09-30 trading days: 233
+    compare_algorithm("000031", "000036", start_date = '2013-10-10', end_date = '2014-09-30') #2014-07-30 trading days: 192; 2014-09-30 trading days: 233
+    writeDictCSV("Linrgre.csv", weightdict)
     time2 = time.time()
     print "running time(s): ", time2-time1
+
 if __name__ == "__main__":
     # Execute Main functionality
     main()
