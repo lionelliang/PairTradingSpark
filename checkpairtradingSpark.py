@@ -11,7 +11,7 @@ import statsmodels.api as sm
 import statsmodels.tsa.stattools as sts
 
 from StringIO import StringIO
-from pyspark import SparkConf, SparkContext
+from pyspark import SparkConf, SparkContext, SQLContext
 
 ## Module Constants
 APP_NAME = "ADF Spark Application"
@@ -19,7 +19,7 @@ TABLE_STOCKS_BASIC = 'stock_basic_list'
 TABLE_STOCKS_PAIRS = 'stock_pairing_list45'
 TABLE_WEIGHT = 'stock_linrreg.csv'
 DownloadDir = './stockdata/'
-weightdict = {}     #previous weight dict
+#weightdict = {}     #previous weight dict broadcast
 
 ## Closure Functions
 #date example 2011/10/13
@@ -75,6 +75,23 @@ def writeDictCSV(fileName="", dataDict={}):
         for k,v in dataDict.iteritems():
             csvWriter.writerow([str(k), v[0], v[1]])
         csvFile.close()
+
+def writeRddCSV(fileName, rdd, sqlContext):
+    df = sqlContext.createDataFrame(rdd)
+    #print df.first()
+    df.write.format("com.databricks.spark.csv").save(fileName)
+    '''
+    with open(fileName, "wb") as csvFile:
+        csvWriter = csv.writer(csvFile)
+        rdd.foreach(lambda elem: writeElem(csvWriter, elem)) 
+        csvFile.close()
+    '''
+def writeElem(csvWriter, elem):
+    csvWriter.writerow(elem[0], elem[1][1], elem[1][2])
+
+def toCSVLine(data):
+  return ','.join(str(d) for d in data)
+
 
 '''
     linear regression with Stochastic Gradient Decent mothod
@@ -177,6 +194,24 @@ def adfuller_check_price_sgd(code1, code2, start_date = '2013-10-10', end_date =
     weightdict[code1+code2] = [result[1], result[2]]    # update weight data
     return result[0]
 
+def adfuller_check_sgd_withweight(code1, code2, w, start_date = '2013-10-10', end_date = '2014-09-30'):
+    closeprice_of_1, closeprice_of_2 = load_process(code1, code2, start_date, end_date)
+    if len(closeprice_of_1)<=1 or len(closeprice_of_1)<=1:
+        return
+
+
+    if not w == 0 :     # get previous weight
+        a = w[1]
+        b = w[2]
+        print w
+    else:
+        #print "not find w"
+        np.random.seed(2)
+        a, b = np.random.randn(2)
+    result = adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b)
+
+    return code1+code2, np.float64(result[0]).item(), np.float64(result[1]).item(), np.float64(result[2]).item()
+
 def adfuller_check(code1, code2, start_date = '2013-10-10', end_date = '2014-09-30'):
     m = getSixDigitalStockCode(code1)
     n = getSixDigitalStockCode(code2)
@@ -215,16 +250,41 @@ def adfuller_check2(row):
     #return adfuller_check_price_sgd(row[0], row[1], start_date = '2013-10-10', end_date = '2014-09-30')
 	return adfuller_check_price_sgd(row[0], row[1], start_date = '2013-10-10', end_date = '2014-12-30')
 
+def adfuller_check3(code1, code2, w):
+    
+    return adfuller_check_sgd_withweight(code1, code2, w, start_date = '2013-10-10', end_date = '2014-12-30')
+
 def check_all_dir(sc):
+    
+    weightdict = {}
+    readDictCSV(TABLE_WEIGHT, weightdict)      # load weight file
+    # Broadcast the lookup dictionary to the cluster
+    weight_lookup = sc.broadcast(weightdict)
+
     print "starting adf checking"
     stockPool = sc.textFile(TABLE_STOCKS_PAIRS + '.csv').map(split)
     #print stockPool.first()
 
     #adfResult = stockPool.map(adfuller_check2)
-    adfResult = stockPool.filter(adfuller_check2)
+    #adfResult = stockPool.filter(adfuller_check2)
+    #adfResult  = stockPool.map(lambda f: (str(f[0])+str(f[1]), adfuller_check3(f[0], f[1], weight_lookup.value[str(f[0])+str(f[1])])))
+    adfResult  = stockPool.map(lambda f: (adfuller_check3(f[0], f[1], 
+                                                weight_lookup.value.get(str(f[0])+str(f[1]), 0))))
 
-    #print adfResult.first()
+    adfResult.collect()
+    print adfResult.first()[1], adfResult.first()[2]
     print "%d <<<pairings" % adfResult.count()
+
+    print "write weightdict", len(weightdict)
+    #print weightdict.iteritems()
+    #dicResult = adfResult.map(lambda elem: dict(elem[0], (elem[1][1]), elem[1][2]))
+    #writeDictCSV(TABLE_WEIGHT, dicResult)     # save weight file
+    sqlContext = SQLContext(sc)
+    writeRddCSV(TABLE_WEIGHT, adfResult, sqlContext)
+    
+    # write in hdfs
+    #lines = adfResult.map(toCSVLine)
+    #lines.saveAsTextFile('hdfs://localhost:9000/stock_linrreg.csv')
 
 ## Main functionality
 def main(sc):
@@ -233,12 +293,7 @@ def main(sc):
     # check all stock pairing in list book
     #save_stk_pairings()
 
-    readDictCSV(TABLE_WEIGHT, weightdict)      # load weight file
     check_all_dir(sc)
-
-    print "write weightdict", len(weightdict)
-    #print weightdict.iteritems()
-    writeDictCSV(TABLE_WEIGHT, weightdict)     # save weight file
 
     time2 = time.time()
     print "running time(s): ", time2-time1
