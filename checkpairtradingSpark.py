@@ -79,7 +79,8 @@ def writeDictCSV(fileName="", dataDict={}):
 def writeRddCSV(fileName, rdd, sqlContext):
     df = sqlContext.createDataFrame(rdd)
     #print df.first()
-    df.write.format("com.databricks.spark.csv").save(fileName)
+    #df.write.format("com.databricks.spark.csv").save(fileName)
+    df.toPandas().to_csv(fileName, header=False, index=False)
     '''
     with open(fileName, "wb") as csvFile:
         csvWriter = csv.writer(csvFile)
@@ -271,7 +272,7 @@ def check_all_dir(sc):
     adfResult  = stockPool.map(lambda f: (adfuller_check3(f[0], f[1], 
                                                 weight_lookup.value.get(str(f[0])+str(f[1]), 0))))
 
-    adfResult.collect()
+    #adfResult.collect()
     print adfResult.first()[1], adfResult.first()[2]
     print "%d <<<pairings" % adfResult.count()
 
