@@ -13,6 +13,9 @@ import statsmodels.tsa.stattools as sts
 from StringIO import StringIO
 from pyspark import SparkConf, SparkContext, SQLContext
 
+import pymongo_spark
+pymongo_spark.activate()
+
 ## Module Constants
 APP_NAME = "ADF Spark Application"
 TABLE_STOCKS_BASIC = 'stock_basic_list'
@@ -21,6 +24,10 @@ TABLE_WEIGHT = 'stock_linrreg.csv'
 DownloadDir = './stockdata/'
 #weightdict = {}     #previous weight dict broadcast
 
+#mongo db config
+MONGO_TABLE_WEIGHT = 'stock.linrreg'
+MONGO_TABLE_WEIGHT_SAVED = 'stock.linrregsaved'
+MONGO_TABLE_STOCKS_PAIRS = 'stock.pairs'
 ## Closure Functions
 #date example 2011/10/13
 tudateparser = lambda dates: pd.datetime.strptime(dates, '%Y-%m-%d')
@@ -73,14 +80,14 @@ def writeDictCSV(fileName="", dataDict={}):
     with open(fileName, "wb") as csvFile:
         csvWriter = csv.writer(csvFile)
         for k,v in dataDict.iteritems():
-            csvWriter.writerow([str(k), v[0], v[1]]) # 有冲突问题
+            csvWriter.writerow([str(k), v[0], v[1]])
         csvFile.close()
 
 def writeRddCSV(fileName, rdd, sqlContext):
     df = sqlContext.createDataFrame(rdd)
     #print df.first()
     #df.write.format("com.databricks.spark.csv").save(fileName)
-    df.toPandas().to_csv(fileName, header=False, index=False)   # 有冲突问题
+    df.toPandas().to_csv(fileName, header=False, index=False)
     '''
     with open(fileName, "wb") as csvFile:
         csvWriter = csv.writer(csvFile)
@@ -93,6 +100,16 @@ def writeElem(csvWriter, elem):
 def toCSVLine(data):
   return ','.join(str(d) for d in data)
 
+'''
+mongo db operation
+'''
+def readCollectionMongo(sc, collection):
+    return sc.mongoRDD('mongodb://localhost:27017/'+collection)
+
+# 功能：将一字典写入到csv文件中
+# 输入：文件名称，数据字典
+def writeCollectionMongo(rdd, collection):
+    rdd.saveToMongoDB('mongodb://localhost:27017/'+collection)
 
 '''
     linear regression with Stochastic Gradient Decent mothod
@@ -199,7 +216,8 @@ def adfuller_check_sgd_withweight(code1, code2, w, start_date = '2013-10-10', en
     closeprice_of_1, closeprice_of_2 = load_process(code1, code2, start_date, end_date)
     if len(closeprice_of_1)<=1 or len(closeprice_of_1)<=1:
         return
-
+    print code1, code2, w[1], w[2]
+    return
 
     if not w == 0 :     # get previous weight
         a = w[1]
@@ -251,27 +269,23 @@ def adfuller_check2(row):
     #return adfuller_check_price_sgd(row[0], row[1], start_date = '2013-10-10', end_date = '2014-09-30')
 	return adfuller_check_price_sgd(row[0], row[1], start_date = '2013-10-10', end_date = '2014-12-30')
 
-def adfuller_check3(code1, code2, w):
-    
+def adfuller_check4(stk1, stk2, a, b):
+    w = [a, b]
     return adfuller_check_sgd_withweight(code1, code2, w, start_date = '2013-10-10', end_date = '2014-12-30')
 
 def check_all_dir(sc):
     
-    weightdict = {}
-    readDictCSV(TABLE_WEIGHT, weightdict)      # load weight file
-    # Broadcast the lookup dictionary to the cluster
-    weight_lookup = sc.broadcast(weightdict)
+    stockPool = readCollectionMongo(sc, MONGO_TABLE_STOCKS_PAIRS)      # load weight file
+    print stockPool.take(5)
 
     print "starting adf checking"
-    stockPool = sc.textFile(TABLE_STOCKS_PAIRS + '.csv').map(split)
-    #print stockPool.first()
 
     #adfResult = stockPool.map(adfuller_check2)
     #adfResult = stockPool.filter(adfuller_check2)
-    #adfResult  = stockPool.map(lambda f: (str(f[0])+str(f[1]), adfuller_check3(f[0], f[1], weight_lookup.value[str(f[0])+str(f[1])])))
-    adfResult  = stockPool.map(lambda f: (adfuller_check3(f[0], f[1], 
-                                                weight_lookup.value.get(str(f[0])+str(f[1]), 0))))
-
+    adfResult  = stockPool.map(lambda f: (adfuller_check4(f.stk1, f.stk2, f.a, f.b)))
+    #adfResult  = stockPool.map(lambda f: (adfuller_check4(f[0], f[1], f[2], f[3])))
+    #adfResult  = stockPool.map(adfuller_check4)
+'''
     #adfResult.collect()
     print adfResult.first()[1], adfResult.first()[2]
     print "%d <<<pairings" % adfResult.count()
@@ -281,11 +295,8 @@ def check_all_dir(sc):
     #dicResult = adfResult.map(lambda elem: dict(elem[0], (elem[1][1]), elem[1][2]))
     #writeDictCSV(TABLE_WEIGHT, dicResult)     # save weight file
     sqlContext = SQLContext(sc)
-    writeRddCSV(TABLE_WEIGHT, adfResult, sqlContext)
-    
-    # write in hdfs
-    #lines = adfResult.map(toCSVLine)
-    #lines.saveAsTextFile('hdfs://localhost:9000/stock_linrreg.csv')
+    #writeRddCSV(TABLE_WEIGHT, adfResult, sqlContext)
+'''
 
 ## Main functionality
 def main(sc):

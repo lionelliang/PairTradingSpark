@@ -97,8 +97,8 @@ def load_data(sc):
     stockPool = sc.textFile(TABLE_STOCKS_BASIC + '.csv').map(split)
     #print stockPool.first()
     
-    adfResult  = stockPool.map(lambda f: (adfuller_check3(f[0], f[1], 
-                                                weight_lookup.value.get(str(f[0])+str(f[1]), 0))))
+    #adfResult  = stockPool.map(lambda f: (adfuller_check3(f[0], f[1], 
+    #                                            weight_lookup.value.get(str(f[0])+str(f[1]), 0))))
 
 ## Main functionality
 def main(sc):
