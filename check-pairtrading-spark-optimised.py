@@ -11,7 +11,7 @@ import statsmodels.api as sm
 import statsmodels.tsa.stattools as sts
 
 from StringIO import StringIO
-from pyspark import SparkConf, SparkContext, SQLContext
+from pyspark import SparkConf, SparkContext
 
 import pymongo_spark
 pymongo_spark.activate()
@@ -22,7 +22,7 @@ TABLE_STOCKS_BASIC = 'stock_basic_list'
 TABLE_STOCKS_PAIRS = 'stock_pairing_list45'
 TABLE_WEIGHT = 'stock_linrreg.csv'
 DownloadDir = './stockdata/'
-#weightdict = {}     #previous weight dict broadcast
+weightdict = {}     #previous weight dict broadcast
 
 #mongo db config
 MONGO_TABLE_WEIGHT = 'stock.linrreg'
@@ -43,7 +43,8 @@ def save_stk_pairings():
 
 	for i in range(len(reindexed_code)):
 	    for j in range(i+1, len(reindexed_code)):
-	        stockPool = stockPool.append({'code1':str(reindexed_code[i]), 'code2':str(reindexed_code[j])}, ignore_index=True)
+	        stockPool = stockPool.append({'code1':str(reindexed_code[i]),  \
+            'code2':str(reindexed_code[j])}, ignore_index=True)
 
 	stockPool.to_csv(TABLE_STOCKS_PAIRS + '.csv', header=False, index=False)
 
@@ -141,7 +142,8 @@ def linregSGD(x, y, a, b):
             a = a - alpha * diff
             b = b - alpha * diff * x[i]
 
-            if ((a-errorA)*(a-errorA) + (b-errorB)*(b-errorB)) < epsilon:     # 终止条件：前后两次计算出的权向量的绝对误差充分小  
+            if ((a-errorA)*(a-errorA) + (b-errorB)*(b-errorB)) < epsilon:     
+                # 终止条件：前后两次计算出的权向量的绝对误差充分小  
                 finish = 1
                 break
             else:
@@ -175,6 +177,7 @@ def load_process(code1, code2, start_date, end_date):
     n = getSixDigitalStockCode(code2)
     file1 = DownloadDir + "h_kline_" + m + ".csv"
     file2 = DownloadDir + "h_kline_" + n + ".csv"
+
     if (not os.path.exists(file1)) or (not os.path.exists(file1)):
         return {},{}
 
@@ -212,24 +215,20 @@ def adfuller_check_price_sgd(code1, code2, start_date = '2013-10-10', end_date =
     weightdict[code1+code2] = [result[1], result[2]]    # update weight data
     return result[0]
 
-def adfuller_check_sgd_withweight(code1, code2, w, start_date = '2013-10-10', end_date = '2014-09-30'):
+def adfuller_check_sgd_withweight(code1, code2, a, b, start_date = '2013-10-10', end_date = '2014-09-30'):
     closeprice_of_1, closeprice_of_2 = load_process(code1, code2, start_date, end_date)
     if len(closeprice_of_1)<=1 or len(closeprice_of_1)<=1:
-        return
-    print code1, code2, w[1], w[2]
-    return
+        return {"stk1":code1, "stk2":code2, "flag":0, "a":0, "b":0}
 
-    if not w == 0 :     # get previous weight
-        a = w[1]
-        b = w[2]
-        print w
-    else:
+    if not a or not b or (a==0 and b==0):     # get previous weight
         #print "not find w"
         np.random.seed(2)
         a, b = np.random.randn(2)
+
     result = adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b)
 
-    return code1+code2, np.float64(result[0]).item(), np.float64(result[1]).item(), np.float64(result[2]).item()
+    return {"stk1":code1, "stk2":code2, "flag":np.float64(result[0]).item(),  \
+    "a":np.float64(result[1]).item(), "b":np.float64(result[2]).item()}
 
 def adfuller_check(code1, code2, start_date = '2013-10-10', end_date = '2014-09-30'):
     m = getSixDigitalStockCode(code1)
@@ -269,34 +268,28 @@ def adfuller_check2(row):
     #return adfuller_check_price_sgd(row[0], row[1], start_date = '2013-10-10', end_date = '2014-09-30')
 	return adfuller_check_price_sgd(row[0], row[1], start_date = '2013-10-10', end_date = '2014-12-30')
 
-def adfuller_check4(stk1, stk2, a, b):
-    w = [a, b]
-    return adfuller_check_sgd_withweight(code1, code2, w, start_date = '2013-10-10', end_date = '2014-12-30')
+def adfuller_check4(code1, code2, a, b):
+    return adfuller_check_sgd_withweight(code1, code2, a, b, start_date = '2013-10-10', end_date = '2014-12-30')
 
 def check_all_dir(sc):
     
     stockPool = readCollectionMongo(sc, MONGO_TABLE_STOCKS_PAIRS)      # load weight file
-    print stockPool.take(5)
+    print stockPool.take(2)
 
     print "starting adf checking"
 
     #adfResult = stockPool.map(adfuller_check2)
     #adfResult = stockPool.filter(adfuller_check2)
-    adfResult  = stockPool.map(lambda f: (adfuller_check4(f.stk1, f.stk2, f.a, f.b)))
-    #adfResult  = stockPool.map(lambda f: (adfuller_check4(f[0], f[1], f[2], f[3])))
-    #adfResult  = stockPool.map(adfuller_check4)
-'''
-    #adfResult.collect()
-    print adfResult.first()[1], adfResult.first()[2]
-    print "%d <<<pairings" % adfResult.count()
+    # collon seems to be a dict
+    adfResult  = stockPool.map(lambda f: (adfuller_check4(f["stk1"], f["stk2"], f["a"], f["b"])))
 
-    print "write weightdict", len(weightdict)
-    #print weightdict.iteritems()
-    #dicResult = adfResult.map(lambda elem: dict(elem[0], (elem[1][1]), elem[1][2]))
-    #writeDictCSV(TABLE_WEIGHT, dicResult)     # save weight file
-    sqlContext = SQLContext(sc)
-    #writeRddCSV(TABLE_WEIGHT, adfResult, sqlContext)
-'''
+    #adfResult.collect()
+
+    print "%d <<<pairings" % adfResult.count()
+    print adfResult.first()
+
+    print "write to mongo db"
+    writeCollectionMongo(adfResult, MONGO_TABLE_WEIGHT_SAVED)
 
 ## Main functionality
 def main(sc):

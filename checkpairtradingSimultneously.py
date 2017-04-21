@@ -2,16 +2,10 @@
 import os
 import time
 import csv
-import operator
-import multiprocessing
 import numpy as np
 import pandas as pd
-import tushare as ts
 import statsmodels.api as sm
-import matplotlib.pyplot as plt
 import statsmodels.tsa.stattools as sts
-from datetime import datetime
-from collections import namedtuple
 
 TABLE_STOCKS_BASIC = 'stock_basic_list'
 DownloadDir = './stockdata/'
@@ -70,7 +64,8 @@ def linregSGD(x, y, a, b):
             a = a - alpha * diff
             b = b - alpha * diff * x[i]
 
-            if ((a-errorA)*(a-errorA) + (b-errorB)*(b-errorB)) < epsilon:     # 终止条件：前后两次计算出的权向量的绝对误差充分小  
+            if ((a-errorA)*(a-errorA) + (b-errorB)*(b-errorB)) < epsilon:     
+                # 终止条件：前后两次计算出的权向量的绝对误差充分小  
                 finish = 1
                 break
             else:
@@ -191,8 +186,8 @@ def adfuller_check_price_sgd(code1, code2, start_date = '2013-10-10', end_date =
 def load_process(code1, code2, start_date, end_date):
     m = str(code1)
     n = str(code2)
-    file1 = DownloadDir + "h_kline_" + code1 + ".csv"
-    file2 = DownloadDir + "h_kline_" + code2 + ".csv"
+    file1 = DownloadDir + "h_kline_" + m + ".csv"
+    file2 = DownloadDir + "h_kline_" + n + ".csv"
     if not os.path.exists(file1) or not os.path.exists(file1):
         return {}, {}
 
@@ -234,8 +229,8 @@ def simulate_check_5days(close1, close2):
 def adfuller_check_price(code1, code2, start_date = '2013-10-10', end_date = '2014-09-30'):
     m = str(code1)
     n = str(code2)
-    file1 = DownloadDir + "h_kline_" + code1 + ".csv"
-    file2 = DownloadDir + "h_kline_" + code2 + ".csv"
+    file1 = DownloadDir + "h_kline_" + m + ".csv"
+    file2 = DownloadDir + "h_kline_" + n + ".csv"
     if not os.path.exists(file1) or not os.path.exists(file1):
         return
 
@@ -268,7 +263,8 @@ def check_all_dir():
 
     for i in range(len(reindexed_code)):
         for j in range(i+1, len(reindexed_code)):
-            stockPool = stockPool.append({'code1':str(reindexed_code[i]), 'code2':str(reindexed_code[j])}, ignore_index=True)
+            stockPool = stockPool.append({'code1':str(reindexed_code[i]),  \
+            'code2':str(reindexed_code[j])}, ignore_index=True)
 
     stockPool.apply(adfuller_check2, axis=1)
 

@@ -1,15 +1,9 @@
 import os
 import time
-import operator
-import multiprocessing
-import numpy as np
 import pandas as pd
 import tushare as ts
 import statsmodels.api as sm
-import matplotlib.pyplot as plt
 import statsmodels.tsa.stattools as sts
-from datetime import datetime
-from collections import namedtuple
 
 TABLE_STOCKS_BASIC = 'stock_basic_list'
 DownloadDir = './stockdata/'
@@ -126,7 +120,8 @@ def check_all_dir():
 
     for i in range(len(reindexed_code)):
         for j in range(i+1, len(reindexed_code)):
-            stockPool = stockPool.append({'code1':str(reindexed_code[i]), 'code2':str(reindexed_code[j])}, ignore_index=True)
+            stockPool = stockPool.append({'code1':str(reindexed_code[i]),  \
+            'code2':str(reindexed_code[j])}, ignore_index=True)
 
     stockPool.apply(adfuller_check2, axis=1)
 '''not working

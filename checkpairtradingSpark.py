@@ -19,7 +19,7 @@ TABLE_STOCKS_BASIC = 'stock_basic_list'
 TABLE_STOCKS_PAIRS = 'stock_pairing_list45'
 TABLE_WEIGHT = 'stock_linrreg.csv'
 DownloadDir = './stockdata/'
-#weightdict = {}     #previous weight dict broadcast
+weightdict = {}     #previous weight dict broadcast
 
 ## Closure Functions
 #date example 2011/10/13
@@ -36,7 +36,8 @@ def save_stk_pairings():
 
 	for i in range(len(reindexed_code)):
 	    for j in range(i+1, len(reindexed_code)):
-	        stockPool = stockPool.append({'code1':str(reindexed_code[i]), 'code2':str(reindexed_code[j])}, ignore_index=True)
+	        stockPool = stockPool.append({'code1':str(reindexed_code[i]),  \
+            'code2':str(reindexed_code[j])}, ignore_index=True)
 
 	stockPool.to_csv(TABLE_STOCKS_PAIRS + '.csv', header=False, index=False)
 
@@ -124,7 +125,8 @@ def linregSGD(x, y, a, b):
             a = a - alpha * diff
             b = b - alpha * diff * x[i]
 
-            if ((a-errorA)*(a-errorA) + (b-errorB)*(b-errorB)) < epsilon:     # 终止条件：前后两次计算出的权向量的绝对误差充分小  
+            if ((a-errorA)*(a-errorA) + (b-errorB)*(b-errorB)) < epsilon:     
+                # 终止条件：前后两次计算出的权向量的绝对误差充分小  
                 finish = 1
                 break
             else:
@@ -266,9 +268,11 @@ def check_all_dir(sc):
     stockPool = sc.textFile(TABLE_STOCKS_PAIRS + '.csv').map(split)
     #print stockPool.first()
 
+    # collon seems to be an array
     #adfResult = stockPool.map(adfuller_check2)
     #adfResult = stockPool.filter(adfuller_check2)
     #adfResult  = stockPool.map(lambda f: (str(f[0])+str(f[1]), adfuller_check3(f[0], f[1], weight_lookup.value[str(f[0])+str(f[1])])))
+    
     adfResult  = stockPool.map(lambda f: (adfuller_check3(f[0], f[1], 
                                                 weight_lookup.value.get(str(f[0])+str(f[1]), 0))))
 

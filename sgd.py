@@ -2,7 +2,6 @@
 import numpy as np
 import time
 import statsmodels.api as sm
-import matplotlib.pyplot as plt
 from scipy import stats
 
 '''
@@ -35,7 +34,8 @@ def SGD(x, y, a, b):
             a = a - alpha * diff
             b = b - alpha * diff * x[i]
 
-            if ((a-errorA)*(a-errorA) + (b-errorB)*(b-errorB)) < epsilon:     # 终止条件：前后两次计算出的权向量的绝对误差充分小  
+            if ((a-errorA)*(a-errorA) + (b-errorB)*(b-errorB)) < epsilon:     
+                # 终止条件：前后两次计算出的权向量的绝对误差充分小  
                 finish = 1
                 break
             else:
@@ -78,7 +78,8 @@ def SGDWrong(x, target_data, a, b):
 
         # ----------------------------------终止条件判断-----------------------------------------
         # 注意：有多种迭代终止条件，和判断语句的位置。终止判断可以放在权值向量更新一次后,也可以放在更新m次后。
-        if ((a-errorA)*(a-errorA) + (b-errorB)*(b-errorB)) < epsilon:     # 终止条件：前后两次计算出的权向量的绝对误差充分小  
+        if ((a-errorA)*(a-errorA) + (b-errorB)*(b-errorB)) < epsilon:     
+            # 终止条件：前后两次计算出的权向量的绝对误差充分小  
             finish = 1
             break
         else:
