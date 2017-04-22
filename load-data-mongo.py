@@ -35,7 +35,7 @@ def save_stk_pairings():
 
 	for i in range(len(reindexed_code)):
 	    for j in range(i+1, len(reindexed_code)):
-	        stockPool = stockPool.append({'code1':str(reindexed_code[i]), 
+	        stockPool = stockPool.append({'code1':str(reindexed_code[i]), \
             'code2':str(reindexed_code[j])}, ignore_index=True)
 
 	stockPool.to_csv(TABLE_STOCKS_PAIRS + '.csv', header=False, index=False)
@@ -61,7 +61,7 @@ def load_data():
     stock_list = pd.read_csv(TABLE_STOCKS_BASIC + '.csv', dtype=str)
     code = stock_list['code']
     reindexed_code = code.reset_index(drop=True)
-    reindexed_code = reindexed_code[100:200]
+    #reindexed_code = reindexed_code[100:200]
     reindexed_code = reindexed_code.reset_index(drop=True)
     print len(reindexed_code)
 
