@@ -21,18 +21,15 @@ def _connect_mongo(host, port, username, password, db):
 
     return conn[db]
 
-def read_mongo(db, collection, query={}, host='localhost', port=27017, username=None, password=None, no_id=True):
+def read_mongo(db, collection, query={}, column={}, host='localhost', port=27017, username=None, password=None):
     """ Read from Mongo and Store into DataFrame """
-
     # Connect to MongoDB
     db = _connect_mongo(host=host, port=port, username=username, password=password, db=db)
     # Make a query to the specific DB and Collection
-    cursor = db[collection].find(query)
+    cursor = db[collection].find(query, column)
     # Expand the cursor and construct the DataFrame
     df =  pd.DataFrame(list(cursor))
-    # Delete the _id
-    if no_id:
-        del df['_id']
+
     return df
 
 def main():
@@ -58,8 +55,13 @@ def main():
     dfCollection = rddpure.toDF(['date', 'close']).toPandas()
     print dfCollection.head()
 
-    # read pandas dataframe with pymongo
-    pandasdf603989 = read_mongo("quotation", "kline_603989")
+    # read data from pymongo into pandas dataframe
+    query = {"date": {"$gte": "2013-10-10", "$lt": "2015-09-30"}}
+    column = {"date":1, "close":1, "_id":0}
+    pandasdf603989 = read_mongo("quotation", "kline_603989", query, column)
+    pandasdf603989['date'] =  pd.to_datetime(pandasdf603989['date'], format='%Y-%m-%d')
+    pandasdf603989.index = pandasdf603989['date'].tolist()
+    #price_of_1 = pandasdf603989['2014-09-30':'2013-10-10']
     print pandasdf603989.head()
     # You can also read and write BSON:
     #bson_rdd = sc.BSONFileRDD('/path/to/file.bson')

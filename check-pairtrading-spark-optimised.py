@@ -31,6 +31,7 @@ MONGO_TABLE_WEIGHT = 'stock.linrreg'
 MONGO_TABLE_WEIGHT_SAVED = 'stock.linrregsaved'
 MONGO_TABLE_STOCKS_PAIRS = 'stock.pairs'
 MONGO_DB_QUOTATION = 'quotation'
+MONGO_TABLE_PREFIX = 'kline_'
 
 ## Closure Functions
 #date example 2011/10/13
@@ -110,26 +111,21 @@ mongo db operation
 '''
 def _connect_mongo(host, port, username, password, db):
     """ A util for making a connection to mongo """
-
     if username and password:
         mongo_uri = 'mongodb://%s:%s@%s:%s/%s' % (username, password, host, port, db)
         conn = MongoClient(mongo_uri)
     else:
         conn = MongoClient(host, port)
-
     return conn[db]
 
-def read_mongo(db, collection, query={}, host='localhost', port=27017, username=None, password=None, no_id=True):
+def read_mongo(db, collection, query={}, column={}, host='localhost', port=27017, username=None, password=None):
     """ Read from Mongo and Store into DataFrame """
     # Connect to MongoDB
     db = _connect_mongo(host=host, port=port, username=username, password=password, db=db)
     # Make a query to the specific DB and Collection
-    cursor = db[collection].find(query)
+    cursor = db[collection].find(query, column)
     # Expand the cursor and construct the DataFrame
     df =  pd.DataFrame(list(cursor))
-    # Delete the _id
-    if not df.empty and no_id:
-        del df['_id']
     return df
 
 def readCollectionMongo(collection):
@@ -193,6 +189,7 @@ def adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b):
 
         return adfstat < critvalues['5%'], alpha, beta
     else:
+        print "no data"
         return False, 0, 0
 '''        
         print adfstat
@@ -226,17 +223,27 @@ def load_process(code1, code2, start_date, end_date):
 def load_process_data_mongo(code1, code2, start_date, end_date):
     m = getSixDigitalStockCode(code1)
     n = getSixDigitalStockCode(code2)
-    collection1 = "h_kline_" + m
-    collection2 = "h_kline_" + n
+    collection1 = MONGO_TABLE_PREFIX + m
+    collection2 = MONGO_TABLE_PREFIX + n
 
-    kline1 = read_mongo(MONGO_DB_QUOTATION, collection1)
-    kline2 = read_mongo(MONGO_DB_QUOTATION, collection2)
+    query = {"date": {"$gte": start_date, "$lt": end_date}}
+    column = {"date":1, "close":1, "_id":0}
+
+    kline1 = read_mongo(MONGO_DB_QUOTATION, collection1, query, column)
+    kline2 = read_mongo(MONGO_DB_QUOTATION, collection2, query, column)
 
     if kline1.empty or  kline2.empty:
         return {},{}
 
-    price_of_1 = kline1[end_date:start_date]
-    price_of_2 = kline2[end_date:start_date]
+    kline1['date'] =  pd.to_datetime(kline1['date'], format='%Y-%m-%d')
+    kline2['date'] =  pd.to_datetime(kline2['date'], format='%Y-%m-%d')
+    kline1.index = kline1['date'].tolist()
+    kline2.index = kline2['date'].tolist()
+
+    #price_of_1 = kline1[end_date:start_date]
+    #price_of_2 = kline2[end_date:start_date]
+    price_of_1 = kline1
+    price_of_2 = kline2
 
     # regroup quotation according to date index
     combination = price_of_1.join(price_of_2, how='inner', lsuffix='l', rsuffix='r')
@@ -246,7 +253,7 @@ def load_process_data_mongo(code1, code2, start_date, end_date):
     closeprice_of_2 = combination['closer'].reset_index(drop=True)
     return closeprice_of_1, closeprice_of_2
 
-def adfuller_check_price_sgd(code1, code2, start_date = '2013-10-10', end_date = '2014-09-30'):
+def adfuller_check_price_sgd(code1, code2, start_date = '2013-10-10', end_date = '2015-09-30'):
     closeprice_of_1, closeprice_of_2 = load_process(code1, code2, start_date, end_date)
     if len(closeprice_of_1)<=1 or len(closeprice_of_1)<=1:
         return
@@ -266,9 +273,10 @@ def adfuller_check_price_sgd(code1, code2, start_date = '2013-10-10', end_date =
     weightdict[code1+code2] = [result[1], result[2]]    # update weight data
     return result[0]
 
-def adfuller_check_sgd_withweight(code1, code2, a, b, start_date = '2013-10-10', end_date = '2014-09-30'):
+def adfuller_check_sgd_withweight(code1, code2, a, b, start_date = '2013-10-10', end_date = '2015-09-30'):
     closeprice_of_1, closeprice_of_2 = load_process_data_mongo(code1, code2, start_date, end_date)
     if len(closeprice_of_1)<=1 or len(closeprice_of_1)<=1:
+        print "without data, you shall not pass"
         return {"stk1":code1, "stk2":code2, "flag":0, "a":0, "b":0}
 
     if not a or not b or (a==0 and b==0):     # get previous weight
@@ -277,11 +285,11 @@ def adfuller_check_sgd_withweight(code1, code2, a, b, start_date = '2013-10-10',
         a, b = np.random.randn(2)
 
     result = adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b)
-
+    
     return {"stk1":code1, "stk2":code2, "flag":np.float64(result[0]).item(),  \
     "a":np.float64(result[1]).item(), "b":np.float64(result[2]).item()}
 
-def adfuller_check(code1, code2, start_date = '2013-10-10', end_date = '2014-09-30'):
+def adfuller_check(code1, code2, start_date = '2013-10-10', end_date = '2015-09-30'):
     m = getSixDigitalStockCode(code1)
     n = getSixDigitalStockCode(code2)
     file1 = DownloadDir + "h_kline_" + m + ".csv"
@@ -317,10 +325,10 @@ def adfuller_check(code1, code2, start_date = '2013-10-10', end_date = '2014-09-
 def adfuller_check2(row):
     #return adfuller_check(row[0], row[1])
     #return adfuller_check_price_sgd(row[0], row[1], start_date = '2013-10-10', end_date = '2014-09-30')
-	return adfuller_check_price_sgd(row[0], row[1], start_date = '2013-10-10', end_date = '2014-12-30')
+	return adfuller_check_price_sgd(row[0], row[1], start_date = '2013-10-10', end_date = '2015-09-30')
 
 def adfuller_check4(code1, code2, a, b):
-    return adfuller_check_sgd_withweight(code1, code2, a, b, start_date = '2013-10-10', end_date = '2014-12-30')
+    return adfuller_check_sgd_withweight(code1, code2, a, b, start_date = '2013-10-10', end_date = '2015-09-30')
 
 def check_all_dir(sc):
     
