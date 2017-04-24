@@ -354,7 +354,11 @@ def check_all_dir(sc):
     print adfResult.first()
 
     print "write to mongo db"
-    writeCollectionMongo(adfResult, MONGO_TABLE_WEIGHT_SAVED)
+    try:
+        writeCollectionMongo(adfResult, MONGO_TABLE_WEIGHT_SAVED)
+    except Exception, e:
+        writeCollectionMongo(adfResult, MONGO_TABLE_WEIGHT_SAVED)
+    
 
 ## Main functionality
 def main(sc):
