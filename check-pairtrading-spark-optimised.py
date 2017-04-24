@@ -195,7 +195,7 @@ def adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b):
 
         return adfstat < critvalues['5%'], alpha, beta
     else:
-        print "data not enough"
+        #print "data not enough"
         return False, 0, 0
 '''        
         print adfstat
@@ -282,7 +282,7 @@ def adfuller_check_price_sgd(code1, code2, start_date = '2013-10-10', end_date =
 def adfuller_check_sgd_withweight(code1, code2, a, b, start_date = '2013-10-10', end_date = '2015-09-30'):
     closeprice_of_1, closeprice_of_2 = load_process_data_mongo(code1, code2, start_date, end_date)
     if len(closeprice_of_1)<=1 or len(closeprice_of_1)<=1:
-        print "without data, you shall not pass"
+        #print "without data, you shall not pass"
         return {"stk1":code1, "stk2":code2, "flag":0, "a":0, "b":0}
 
     if not a or not b or (a==0 and b==0):     # get previous weight
