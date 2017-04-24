@@ -38,20 +38,17 @@ MONGO_TABLE_PREFIX = 'kline_'
 tudateparser = lambda dates: pd.datetime.strptime(dates, '%Y-%m-%d')
 
 def save_stk_pairings():
-	stock_list = pd.read_csv(TABLE_STOCKS_BASIC + '.csv', dtype=str)
-	code = stock_list['code']
-	reindexed_code = code.reset_index(drop=True)
-	reindexed_code = reindexed_code[100:200]
-	reindexed_code = reindexed_code.reset_index(drop=True)
-	stockPool = pd.DataFrame(columns=['code1','code2'], dtype=str)
-	print len(reindexed_code)
+	 stock_list = pd.read_csv(TABLE_STOCKS_BASIC + '.csv', dtype=str)
 
-	for i in range(len(reindexed_code)):
-	    for j in range(i+1, len(reindexed_code)):
-	        stockPool = stockPool.append({'code1':str(reindexed_code[i]),  \
-            'code2':str(reindexed_code[j])}, ignore_index=True)
+    list_code = stock_list['code'].values.tolist()
+    #list_code = list_code[100:200]
 
-	stockPool.to_csv(TABLE_STOCKS_PAIRS + '.csv', header=False, index=False)
+    print len(list_code)
+    list_pool = list(itertools.combinations(list_code, 2))
+    stockPool = pd.DataFrame(list_pool, columns=['code1','code2'])
+    print stockPool.head()
+    stockPool.to_csv(TABLE_STOCKS_PAIRS + '.csv', header=False, index=False)
+
 
 # input: int or string
 # output: string
