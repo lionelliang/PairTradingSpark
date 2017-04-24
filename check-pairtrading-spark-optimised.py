@@ -109,23 +109,26 @@ def toCSVLine(data):
 '''
 mongo db operation
 '''
-def _connect_mongo(host, port, username, password, db):
+def _connect_mongo(host, port):
     """ A util for making a connection to mongo """
-    if username and password:
-        mongo_uri = 'mongodb://%s:%s@%s:%s/%s' % (username, password, host, port, db)
-        conn = MongoClient(mongo_uri)
-    else:
-        conn = MongoClient(host, port)
-    return conn[db]
+    conn = MongoClient(host, port)
+    return conn
+
+def get_connection_mongo(host, port):
+    connMongo = MongoClient(host, port)
+    return connMongo
 
 def read_mongo(db, collection, query={}, column={}, host='localhost', port=27017, username=None, password=None):
     """ Read from Mongo and Store into DataFrame """
     # Connect to MongoDB
-    db = _connect_mongo(host=host, port=port, username=username, password=password, db=db)
+    #db = _connect_mongo(host=host, port=port, username=username, password=password, db=db)
+    connMongo = _connect_mongo(host, port)
+    dbMongo = connMongo[db]
     # Make a query to the specific DB and Collection
-    cursor = db[collection].find(query, column)
+    cursor = dbMongo[collection].find(query, column)
     # Expand the cursor and construct the DataFrame
     df =  pd.DataFrame(list(cursor))
+    connMongo.close()
     return df
 
 def readCollectionMongo(collection):
@@ -151,7 +154,7 @@ def linregSGD(x, y, a, b):
     errorA = a
     errorB = b
     count = 0           # 循环次数
-    finish = 0          # 终止标志
+    finish = False          # 终止标志
     m = len(x)          # 训练数据点数目
 
     while count < loop_max:
@@ -173,23 +176,26 @@ def linregSGD(x, y, a, b):
             else:
                 errorA = a
                 errorB = b
-        if finish == 1:     # 跳出循环
+        if finish == True:     # 跳出循环
             break
 
     #print 'loop count = %d' % count,  '\tweight:[%f, %f]' % (a, b)
-    return a, b
+    return finish, a, b
 
 def adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b):
 
-    if len(closeprice_of_1) != 0 and len(closeprice_of_2) != 0:
-        alpha, beta = linregSGD(x=closeprice_of_1, y=closeprice_of_2, a=a, b=b)
+    if len(closeprice_of_1) >= 10 and len(closeprice_of_2) >= 10:
+        finish, alpha, beta = linregSGD(x=closeprice_of_1, y=closeprice_of_2, a=a, b=b)
 
+        if not finish:
+            return False, a, b
         spread = closeprice_of_2 - closeprice_of_1*beta - alpha
-        adfstat, pvalue, usedlag, nobs, critvalues, icbest = sts.adfuller(x=spread)
+        spread.dropna()
+        adfstat, pvalue, usedlag, nobs, critvalues, icbest = sts.adfuller(x=spread, maxlag=1)
 
         return adfstat < critvalues['5%'], alpha, beta
     else:
-        print "no data"
+        print "data not enough"
         return False, 0, 0
 '''        
         print adfstat
@@ -247,7 +253,7 @@ def load_process_data_mongo(code1, code2, start_date, end_date):
 
     # regroup quotation according to date index
     combination = price_of_1.join(price_of_2, how='inner', lsuffix='l', rsuffix='r')
-    combination.dropna()
+    combination = combination.dropna()
 
     closeprice_of_1 = combination['closel'].reset_index(drop=True)
     closeprice_of_2 = combination['closer'].reset_index(drop=True)
@@ -285,7 +291,7 @@ def adfuller_check_sgd_withweight(code1, code2, a, b, start_date = '2013-10-10',
         a, b = np.random.randn(2)
 
     result = adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b)
-    
+
     return {"stk1":code1, "stk2":code2, "flag":np.float64(result[0]).item(),  \
     "a":np.float64(result[1]).item(), "b":np.float64(result[2]).item()}
 
