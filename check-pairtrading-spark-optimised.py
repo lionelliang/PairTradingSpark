@@ -38,7 +38,7 @@ MONGO_TABLE_PREFIX = 'kline_'
 tudateparser = lambda dates: pd.datetime.strptime(dates, '%Y-%m-%d')
 
 def save_stk_pairings():
-	 stock_list = pd.read_csv(TABLE_STOCKS_BASIC + '.csv', dtype=str)
+    stock_list = pd.read_csv(TABLE_STOCKS_BASIC + '.csv', dtype=str)
 
     list_code = stock_list['code'].values.tolist()
     #list_code = list_code[100:200]
@@ -284,8 +284,10 @@ def adfuller_check_sgd_withweight(code1, code2, a, b, start_date = '2013-10-10',
 
     if not a or not b or (a==0 and b==0):     # get previous weight
         #print "not find w"
-        np.random.seed(2)
-        a, b = np.random.randn(2)
+        #np.random.seed(2)
+        #a, b = np.random.randn(2)
+        a = 0
+        b = 0
 
     result = adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b)
 
