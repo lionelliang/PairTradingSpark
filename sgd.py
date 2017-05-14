@@ -44,7 +44,7 @@ def SGD(x, y, a, b):
         if finish == 1:     # 跳出循环
             break
 
-    print 'loop count = %d' % count,  '\tweight:[%f, %f]' % (a, b)
+    #print 'loop count = %d' % count,  '\tweight:[%f, %f]' % (a, b)
     return a, b
 
 def SGDWrong(x, target_data, a, b):
@@ -176,18 +176,20 @@ def main():
     m = len(x)                                      # 训练数据点数目
     print "m=%d" % m
     target_data = 2 * x + 5 + np.random.randn(m)
+    N = 3000
     # 初始化权值
     #np.random.seed(0)
     #w = np.random.randn(2)
     #w = np.zeros(2)             # 7 times recurtion
-    a = 4.673431                 # 104 times recurtion
-    b = 2.048986
+    a = 3.273431                 # 104 times recurtion
+    b = 2.948986
     #w = np.array([4.881609, 2.016084])    # 4 times recursion
 
     #SGD2(x, target_data, w)
     # loop from middle stat
     time1 = time.time()
-    SGD(x, target_data, a, b)
+    for i in range(0, N):
+        SGD(x, target_data, a, b)
     time2 = time.time()
     print "optimised sgd loop time(s): ", time2-time1
 
@@ -195,20 +197,23 @@ def main():
     a2 = 0                      # 324 times recurtion
     b2 = 0
     time7 = time.time()
-    SGD(x, target_data, a2, b2)
+    for i in range(0, N):
+        SGD(x, target_data, a2, b2)
     time8 = time.time()
     print "sgd loop time(s): ", time8-time7
 
     # check with scipy linear regression 
     time3 = time.time()
-    slope, intercept, r_value, p_value, slope_std_error = stats.linregress(x, target_data)
+    for i in range(0, N):
+        slope, intercept, r_value, p_value, slope_std_error = stats.linregress(x, target_data)
     time4 = time.time()
     print 'intercept = %s slope = %s' %(intercept, slope)
     print "linregress time(s): ", time4-time3
 
     time5 = time.time()
     X = sm.add_constant(x)
-    model = sm.OLS(endog=target_data, exog=X)
+    for i in range(0, N):
+        model = sm.OLS(endog=target_data, exog=X)
     result = model.fit()
     time6 = time.time()
     print "params", result.params

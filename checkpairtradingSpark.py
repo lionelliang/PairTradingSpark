@@ -36,7 +36,7 @@ def save_stk_pairings():
 
 	for i in range(len(reindexed_code)):
 	    for j in range(i+1, len(reindexed_code)):
-	        stockPool = stockPool.append({'code1':str(reindexed_code[i]),  \
+	        stockPool.append({'code1':str(reindexed_code[i]),  \
             'code2':str(reindexed_code[j])}, ignore_index=True)
 
 	stockPool.to_csv(TABLE_STOCKS_PAIRS + '.csv', header=False, index=False)

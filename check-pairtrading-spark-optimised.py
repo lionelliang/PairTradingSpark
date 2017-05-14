@@ -27,9 +27,11 @@ DownloadDir = './stockdata/'
 weightdict = {}     #previous weight dict broadcast
 
 #mongo db config
+MONGO_HOST = '127.0.0.1'
 MONGO_TABLE_WEIGHT = 'stock.linrreg'
 MONGO_TABLE_WEIGHT_SAVED = 'stock.linrregsaved'
 MONGO_TABLE_STOCKS_PAIRS = 'stock.pairs'
+MONGO_TABLE_STOCKS_PAIRS_ALL = 'stock.pairsall'
 MONGO_DB_QUOTATION = 'quotation'
 MONGO_TABLE_PREFIX = 'kline_'
 
@@ -115,10 +117,9 @@ def get_connection_mongo(host, port):
     connMongo = MongoClient(host, port)
     return connMongo
 
-def read_mongo(db, collection, query={}, column={}, host='localhost', port=27017, username=None, password=None):
+def read_mongo(db, collection, query={}, column={}, host=MONGO_HOST, port=27017, username=None, password=None):
     """ Read from Mongo and Store into DataFrame """
     # Connect to MongoDB
-    #db = _connect_mongo(host=host, port=port, username=username, password=password, db=db)
     connMongo = _connect_mongo(host, port)
     dbMongo = connMongo[db]
     # Make a query to the specific DB and Collection
@@ -129,12 +130,10 @@ def read_mongo(db, collection, query={}, column={}, host='localhost', port=27017
     return df
 
 def readCollectionMongo(collection):
-    return sc.mongoRDD('mongodb://localhost:27017/'+collection)
+    return sc.mongoRDD('mongodb://'+MONGO_HOST+':27017/'+collection)
 
-# 功能：将一字典写入到csv文件中
-# 输入：文件名称，数据字典
 def writeCollectionMongo(rdd, collection):
-    rdd.saveToMongoDB('mongodb://localhost:27017/'+collection)
+    rdd.saveToMongoDB('mongodb://'+MONGO_HOST+':27017/'+collection)
 
 '''
     linear regression with Stochastic Gradient Decent mothod
@@ -182,6 +181,7 @@ def linregSGD(x, y, a, b):
 def adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b):
 
     if len(closeprice_of_1) >= 10 and len(closeprice_of_2) >= 10:
+        # adfuller won't work if data is not enough
         finish, alpha, beta = linregSGD(x=closeprice_of_1, y=closeprice_of_2, a=a, b=b)
 
         if not finish:
@@ -192,7 +192,6 @@ def adfuller_check_sgd(closeprice_of_1, closeprice_of_2, a, b):
 
         return adfstat < critvalues['5%'], alpha, beta
     else:
-        #print "data not enough"
         return False, 0, 0
 '''        
         print adfstat
@@ -278,6 +277,7 @@ def adfuller_check_price_sgd(code1, code2, start_date = '2013-10-10', end_date =
 
 def adfuller_check_sgd_withweight(code1, code2, a, b, start_date = '2013-10-10', end_date = '2015-09-30'):
     closeprice_of_1, closeprice_of_2 = load_process_data_mongo(code1, code2, start_date, end_date)
+    #closeprice_of_1, closeprice_of_2 = load_process(code1, code2, start_date, end_date)
     if len(closeprice_of_1)<=1 or len(closeprice_of_1)<=1:
         #print "without data, you shall not pass"
         return {"stk1":code1, "stk2":code2, "flag":0, "a":0, "b":0}
